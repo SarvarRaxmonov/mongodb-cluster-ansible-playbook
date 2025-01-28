@@ -1,0 +1,23 @@
+
+- name: Deploy MongoDB configuration
+  ansible.builtin.template:
+    src: mongod.conf.j2
+    dest: /etc/mongod.conf
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Restart MongoDB Service
+  ansible.builtin.service:
+    name: mongod
+    state: restarted
+
+- name: Run rs.initiate() on primary node
+  ansible.builtin.shell: mongosh --eval 'rs.initiate();'
+  when: "'primary' in group_names"
+
+- name: Print secondary group host IPs
+  ansible.builtin.shell: mongosh --eval 'rs.add("{{ hostvars[item].ansible_host }}:27017");'
+  loop: "{{ groups['secondary'] | list }}"
+  run_once: true
+  when: "'primary' in group_names"
